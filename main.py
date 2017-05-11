@@ -4,28 +4,26 @@ import numpy as np
 import time
 import sys
 
-SEARCH_SIZE = 21
+SEARCH_SIZE = 11
 SEARCH_EDGE = SEARCH_SIZE // 2
-SAMPLE_SIZE = 7
+SAMPLE_SIZE = 5
 SAMPLE_EDGE = SAMPLE_SIZE // 2
 
 img = cv.imread("/home/voicu/work/017_facultate/IP/Images/lab10/balloons_Gauss.bmp", cv.CV_8UC1)
 
-def gaussian_element(u, v):
-    return math.exp
-
-sigma = 2.0
+sigma = 3.0
 gauss = np.zeros((SAMPLE_SIZE, SAMPLE_SIZE), np.float)
 
 for i in range(SAMPLE_SIZE):
     for j in range(SAMPLE_SIZE):
         di = i - SAMPLE_EDGE
         dj = j - SAMPLE_EDGE
-        value = math.exp(-(di * di + dj * dj) / (2 * sigma * sigma))
-        # print (di, dj, value)
+        value = 1 / 2 / math.pi / sigma / sigma * math.exp(-(di * di + dj * dj) / (2 * sigma * sigma))
+        print (di, dj, value)
         gauss[i][j] = value
 
 gauss_sum = sum(sum(gauss))
+print (gauss_sum)
 
 def get_weight(img, p1, p2):
     diff_sum = 0
@@ -35,10 +33,11 @@ def get_weight(img, p1, p2):
         for dy in range(-SAMPLE_EDGE, SAMPLE_EDGE+1):
             xx1, yy1 = x1 + dx, y1 + dy
             xx2, yy2 = x2 + dx, y2 + dy
+            diff = gauss[dx+SAMPLE_EDGE][dy+SAMPLE_EDGE] * (int(img[yy1][xx1]) - int(img[yy2][xx2])) ** 2
+            diff_sum += diff
 
-            diff_sum += gauss[dx+SAMPLE_EDGE][dy+SAMPLE_EDGE] * (int(img[yy1][xx1]) - int(img[yy2][xx2])) ** 2
-
-    return math.exp(-diff_sum / gauss_sum)
+    result = math.exp(-diff_sum / 255 / gauss_sum)
+    return result
 
 def denoise_pixel(img, p1):
     weighted_sum = 0.0
@@ -51,17 +50,19 @@ def denoise_pixel(img, p1):
             weighted_sum += w * img[yy][xx]
             w_sum += w
 
-    # print("weighted sum: ", weighted_sum)
-    # print("w sum: ", w_sum)
-
-    return weighted_sum / w_sum
+    result = weighted_sum / w_sum
+    if result < 0:
+        result = 0
+    if result > 255:
+        result = 255
+    return result
 
 def denoise_image(img):
     dest = img.copy()
 
     diff_sum = 0.0
-    x1, x2 = 100, 130
-    y1, y2 = 200, 230
+    x1, x2 = 100, 160
+    y1, y2 = 200, 260
     for x in range(x1, x2+1):
         print("x = ", x)
         for y in range(y1, y2+1):
@@ -74,5 +75,6 @@ def denoise_image(img):
 
 cv.imshow("source", img)
 cv.imshow("dest", denoise_image(img))
-cv.waitKey()
-time.sleep(100000)
+while True:
+    cv.waitKey()
+    time.sleep(100)
